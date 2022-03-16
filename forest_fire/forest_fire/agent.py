@@ -14,7 +14,7 @@ class TreeCell(Agent):
     practice to give one to each agent anyway.
     """
 
-    def __init__(self, pos, model):
+    def __init__(self, pos, model,reborn_tree):
         """
         Create a new tree.
         Args:
@@ -24,13 +24,21 @@ class TreeCell(Agent):
         super().__init__(pos, model)
         self.pos = pos
         self.condition = "Fine"
+        self.reborn_tree = reborn_tree
 
     def step(self):
         """
         If the tree is on fire, spread it to fine trees nearby.
         """
+        if self.condition == "Burned Out":
+            for neighbor in self.model.grid.neighbor_iter(self.pos):
+                if self.reborn_tree <= self.random.random():
+                    self.condition = "Fine"
+
+
         if self.condition == "On Fire":
             for neighbor in self.model.grid.neighbor_iter(self.pos):
                 if neighbor.condition == "Fine":
                     neighbor.condition = "On Fire"
             self.condition = "Burned Out"
+

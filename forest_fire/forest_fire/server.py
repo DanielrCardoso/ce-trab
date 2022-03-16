@@ -30,6 +30,8 @@ model_params = {
     "height": 100,
     "width": 100,
     "density": UserSettableParameter("slider", "Tree density", 0.65, 0.01, 1.0, 0.01),
+    "init_fire":UserSettableParameter("slider", "Tamanho do fogo",0.1,0.1,1.0,0.1),
+    "reborn_tree":UserSettableParameter("slider", "Nascimento de novas arvores",10,1.0,10,1.0)
 }
 server = ModularServer(
     ForestFire, [canvas_element, tree_chart, pie_chart], "Forest Fire", model_params

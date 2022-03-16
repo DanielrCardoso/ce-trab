@@ -2,6 +2,7 @@ from mesa import Model
 from mesa.datacollection import DataCollector
 from mesa.space import Grid
 from mesa.time import RandomActivation
+from mesa.batchrunner import BatchRunner
 
 from .agent import TreeCell
 
@@ -11,7 +12,7 @@ class ForestFire(Model):
     Simple Forest Fire model.
     """
 
-    def __init__(self, width=100, height=100, density=0.65):
+    def __init__(self, width=100, height=100, density=0.65,init_fire=0.1,reborn_tree=20):
         """
         Create a new forest fire model.
 
@@ -35,12 +36,14 @@ class ForestFire(Model):
         for (contents, x, y) in self.grid.coord_iter():
             if self.random.random() < density:
                 # Create a tree
-                new_tree = TreeCell((x, y), self)
-                # Set all trees in the first column on fire.
-                if x == 0:
+                new_tree = TreeCell((x, y), self,reborn_tree=reborn_tree)
+                # Set all trees in the first column on fire.    
+                if x ==self.grid.height/2 and y==self.grid.width/2:
                     new_tree.condition = "On Fire"
+                    
                 self.grid._place_agent((x, y), new_tree)
                 self.schedule.add(new_tree)
+
 
         self.running = True
         self.datacollector.collect(self)
@@ -67,3 +70,46 @@ class ForestFire(Model):
             if tree.condition == tree_condition:
                 count += 1
         return count
+def fine(model):
+    return lambda model: model.count_type(model, "Fine")
+
+def fire(model):
+    return lambda model: model.count_type(model, "On Fire")
+
+def burned(model):
+    return lambda model: model.count_type(model, "Burned Out")
+
+def run_batch():
+    fix_params = {
+        "height": 100,
+        "width": 100,
+    }
+
+    variable_params = {
+        "density": [0.5, 0.75, 0.9], 
+        "init_fire": [10, 20, 40],
+        "reborn_tree": [20,50,80]
+    }
+
+    experiments_per_parameter_configuration = 100
+    max_steps_per_simulation = 10
+    run_batch = BatchRunner(
+        ForestFire,
+        variable_params,
+        fix_params,
+        iterations = experiments_per_parameter_configuration,
+        max_steps = max_steps_per_simulation,
+        model_reporters = {
+            "Fine": fine(ForestFire),
+            "Fire": fire(ForestFire),
+            "Burned Out": burned(ForestFire),
+        },
+    )
+
+    run_batch.run_all()
+
+    run_model_data = run_batch.get_model_vars_dataframe()
+
+    now = datetime.datetime.now().strftime("%Y-%m-%d")
+    file_name_suffix =  ("iter"+str(10) + "steps"+str(100)+"distancia"+now)
+    run_model_data.to_csv("model_data"+file_name_suffix+".csv")
